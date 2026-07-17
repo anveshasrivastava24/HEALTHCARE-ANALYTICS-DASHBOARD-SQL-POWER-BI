@@ -1,0 +1,32 @@
+WITH InsuranceAnalytics AS
+(
+SELECT
+Insurance_Provider,
+COUNT(DISTINCT Name) AS Unique_Patients,
+COUNT(*) AS Total_Admissions,
+ROUND(SUM(Billing_Amount),2) AS Total_Revenue,
+ROUND(AVG(Billing_Amount),2) AS Avg_Billing,
+ROUND(MAX(Billing_Amount),2) AS Highest_Bill,
+ROUND(MIN(Billing_Amount),2) AS Lowest_Bill,
+ROUND(STDEV(Billing_Amount),2) AS Billing_Variation,
+ROUND(
+SUM(Billing_Amount)
+/COUNT(DISTINCT Name),2
+) AS Revenue_Per_Patient,
+ROUND(
+100.0*SUM(Billing_Amount)
+/
+(
+SELECT SUM(Billing_Amount)
+FROM dbo.anv)
+,2) AS Revenue_Contribution_Percent
+FROM dbo.anv
+GROUP BY Insurance_Provider
+HAVING COUNT(*)>=100
+)
+SELECT*,
+DENSE_RANK() OVER(
+ORDER BY Total_Revenue DESC
+) AS Revenue_Rank
+FROM InsuranceAnalytics
+ORDER BY Revenue_Rank;
