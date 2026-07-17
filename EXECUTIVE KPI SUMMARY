@@ -1,0 +1,80 @@
+SELECT
+    COUNT(*) AS Total_Admissions,
+    COUNT(DISTINCT Name) AS Unique_Patients,
+    COUNT(DISTINCT Hospital) AS Total_Hospitals,
+    COUNT(DISTINCT Doctor) AS Total_Doctors,
+    COUNT(DISTINCT Insurance_Provider) AS Insurance_Providers,
+    COUNT(DISTINCT Medical_Condition) AS Medical_Conditions,
+    ROUND(SUM(Billing_Amount),2) AS Total_Revenue,
+    ROUND(AVG(Billing_Amount),2) AS Average_Billing,
+    ROUND(
+        AVG(
+            CAST(
+                DATEDIFF(DAY,
+                Date_of_Admission,
+                Discharge_Date)
+            AS FLOAT)
+        ),2
+    ) AS Avg_Length_of_Stay
+
+FROM dbo.anv;
+
+
+-- DOCTOR'S ANALYSIS - 
+SELECT
+Doctor,
+COUNT(*) AS Total_Admissions,
+COUNT(DISTINCT Name) AS Patients,
+ROUND(SUM(Billing_Amount),2) AS Revenue,
+ROUND(AVG(Billing_Amount),2) AS Avg_Billing,
+ROUND(AVG(
+DATEDIFF(
+DAY,
+Date_of_Admission,
+Discharge_Date)),2) AS Avg_LOS
+FROM dbo.anv
+GROUP BY Doctor
+ORDER BY Revenue DESC;
+
+-- AGE GROUP OF PATIETS - 
+SELECT
+CASE
+WHEN Age<18 THEN '0-17'
+WHEN Age<35 THEN '18-34'
+WHEN Age<50 THEN '35-49'
+WHEN Age<65 THEN '50-64'
+ELSE '65+'
+END AS Age_Group,
+COUNT(*) AS Patients,
+ROUND(SUM(Billing_Amount),2) AS Revenue,
+ROUND(AVG(Billing_Amount),2) AS Avg_Billing,
+ROUND(AVG(
+DATEDIFF(
+DAY,
+Date_of_Admission,
+Discharge_Date)),2) AS Avg_LOS
+FROM dbo.anv
+GROUP BY
+CASE
+WHEN Age<18 THEN '0-17'
+WHEN Age<35 THEN '18-34'
+WHEN Age<50 THEN '35-49'
+WHEN Age<65 THEN '50-64'
+ELSE '65+'
+END
+ORDER BY Revenue DESC;
+
+-- ADMISSION TYPE - 
+SELECT
+Admission_Type,
+COUNT(*) AS Admissions,
+ROUND(SUM(Billing_Amount),2) AS Revenue,
+ROUND(AVG(Billing_Amount),2) AS Avg_Billing,
+ROUND(AVG(
+DATEDIFF(
+DAY,
+Date_of_Admission,
+Discharge_Date)),2) AS Avg_LOS
+FROM dbo.anv
+GROUP BY Admission_Type
+ORDER BY Revenue DESC;
