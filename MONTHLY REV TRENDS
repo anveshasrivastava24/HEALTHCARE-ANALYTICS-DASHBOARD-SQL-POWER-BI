@@ -1,0 +1,14 @@
+SELECT
+YEAR(Date_of_Admission) AS Admission_Year,
+MONTH(Date_of_Admission) AS Admission_Month,
+COUNT(*) AS Total_Admissions,
+ROUND(SUM(Billing_Amount),2) AS Monthly_Revenue,
+ROUND(AVG(Billing_Amount),2) AS Avg_Billing,
+COUNT(DISTINCT Hospital) AS Active_Hospitals
+FROM dbo.anv
+GROUP BY
+YEAR(Date_of_Admission),
+MONTH(Date_of_Admission)
+ORDER BY
+Admission_Year,
+Admission_Month;
