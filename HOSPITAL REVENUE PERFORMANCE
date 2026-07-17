@@ -1,0 +1,25 @@
+WITH HospitalRevenue AS
+(
+SELECT
+    Hospital,
+    COUNT(*) AS Total_Admissions,
+    COUNT(DISTINCT Name) AS Unique_Patients,
+    ROUND(SUM(Billing_Amount),2) AS Total_Revenue,
+    ROUND(AVG(Billing_Amount),2) AS Avg_Billing,
+    ROUND(
+        AVG(
+        CAST(
+        DATEDIFF(DAY,Date_of_Admission,Discharge_Date)
+        AS FLOAT)
+        ),2
+    ) AS Avg_Length_of_Stay
+FROM dbo.anv
+GROUP BY Hospital
+)
+SELECT
+*,
+RANK() OVER(
+ORDER BY Total_Revenue DESC
+) AS Revenue_Rank
+FROM HospitalRevenue
+ORDER BY Revenue_Rank;
