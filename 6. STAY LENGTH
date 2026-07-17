@@ -1,0 +1,41 @@
+WITH StayAnalysis AS
+(
+    SELECT
+        Hospital,
+        Medical_Condition,
+        Admission_Type,
+        Billing_Amount,
+        DATEDIFF(DAY,
+                 Date_of_Admission,
+                 Discharge_Date) AS Length_of_Stay
+    FROM dbo.anv
+    WHERE DATEDIFF(DAY,
+                   Date_of_Admission,
+                   Discharge_Date) > 0
+)
+
+SELECT
+    Hospital,
+    Medical_Condition,
+    COUNT(*) AS Total_Admissions,
+    ROUND(AVG(CAST(Length_of_Stay AS FLOAT)),2) AS Avg_Length_of_Stay,
+    MIN(Length_of_Stay) AS Minimum_LOS,
+    MAX(Length_of_Stay) AS Maximum_LOS,
+    ROUND(STDEV(CAST(Length_of_Stay AS FLOAT)),2) AS LOS_Variation,
+    ROUND(SUM(Billing_Amount),2) AS Total_Revenue,
+    ROUND(AVG(Billing_Amount),2) AS Avg_Revenue_Per_Admission,
+    ROUND(
+        SUM(Billing_Amount)
+        /
+        SUM(Length_of_Stay)
+    ,2) AS Revenue_Per_Day,
+    SUM(CASE WHEN Admission_Type='Emergency' THEN 1 ELSE 0 END) AS Emergency_Cases,
+    SUM(CASE WHEN Admission_Type='Urgent' THEN 1 ELSE 0 END) AS Urgent_Cases,
+    SUM(CASE WHEN Admission_Type='Elective' THEN 1 ELSE 0 END) AS Elective_Cases
+FROM StayAnalysis
+GROUP BY
+Hospital,
+Medical_Condition
+HAVING COUNT(*)>=10
+ORDER BY Total_Revenue DESC;
+
