@@ -1,0 +1,66 @@
+WITH RiskFactors AS
+(
+SELECT
+Name,
+Age,
+Gender,
+Medical_Condition,
+Admission_Type,
+Insurance_Provider,
+Billing_Amount,
+DATEDIFF(
+DAY,
+Date_of_Admission,
+Discharge_Date
+) AS Length_of_Stay,
+Test_Results,
+CASE
+WHEN Age >=75 THEN 3
+WHEN Age >=65 THEN 2
+WHEN Age >=40 THEN 1
+ELSE 0
+END*
+CASE
+WHEN Medical_Condition IN
+('Cancer','Diabetes','Hypertension')
+THEN 3
+WHEN Medical_Condition IN
+('Obesity','Asthma')
+THEN 2
+WHEN Medical_Condition='Arthritis'
+THEN 1
+ELSE 6
+END
++
+CASE
+WHEN Admission_Type='Emergency' THEN 2
+WHEN Admission_Type='Urgent' THEN 1
+ELSE 0
+END
++
+CASE
+WHEN Test_Results='Abnormal' THEN 3
+WHEN Test_Results='Inconclusive' THEN 2
+ELSE 0
+END
++
+CASE
+WHEN Billing_Amount>=40000 THEN 2
+WHEN Billing_Amount>=25000 THEN 1
+ELSE 0
+END
+AS Risk_Score
+FROM dbo.anv
+)
+
+SELECT*,
+CASE
+WHEN Risk_Score>=11 THEN 'Critical'
+WHEN Risk_Score>=8 THEN 'High'
+WHEN Risk_Score>=5 THEN 'Medium'
+ELSE 'Low'
+END AS Risk_Category
+FROM RiskFactors
+ORDER By
+Risk_Score DESC,
+Billing_Amount DESC;
