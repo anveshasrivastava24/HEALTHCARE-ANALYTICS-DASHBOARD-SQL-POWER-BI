@@ -1,5 +1,5 @@
 -- 1. AGE GROUP CATEGORISATION
--- Count patients in age ranges: 0–18 (Child), 19–35 (Young Adult), 36–60 (Adult), 61+ (Senior)
+
 SELECT
     CASE
         WHEN Age BETWEEN 0 AND 18 THEN 'Child (0-18)'
@@ -33,6 +33,7 @@ ORDER BY
 
 
 -- 2. GENDER CLASSIFICATION OVERALL
+
 SELECT
     Gender,
     COUNT(*) AS PatientCount,
@@ -43,6 +44,7 @@ GROUP BY Gender;
 
 
 -- 3. GENDER CLASSIFICATION BY AGE GROUPS
+
 SELECT
     CASE
         WHEN Age BETWEEN 0 AND 18 THEN 'Child (0-18)'
@@ -74,6 +76,7 @@ ORDER BY
 
 
 -- 4. BLOOD TYPE CATEGORISATION
+
 SELECT
     [Blood_Type],
     COUNT(*) AS PatientCount,
@@ -85,6 +88,7 @@ ORDER BY PatientCount DESC;
 
 
 -- 5. MEDICAL CONDITION CATEGORISATION
+
 SELECT
     [Medical_Condition],
     COUNT(*) AS PatientCount,
@@ -96,6 +100,7 @@ ORDER BY PatientCount DESC;
 
 
 -- 6. NUMBER OF PATIENTS ADMITTED AND UNIQUE PATIENTS WITH YoY %
+
 SELECT
     YEAR([Date_of_Admission]) AS AdmissionYear,
     COUNT(*) AS TotalAdmissions,
@@ -111,6 +116,7 @@ ORDER BY AdmissionYear;
 
 
 -- 7. NUMBER OF UNIQUE DOCTORS
+
 SELECT
     COUNT(DISTINCT Doctor) AS UniqueDoctorCount
 FROM [FINAL CLEANED SHEET];
@@ -119,6 +125,7 @@ FROM [FINAL CLEANED SHEET];
 
 
 -- 8. INSURANCE PROVIDERS CATEGORISATION - BY PATIENT COUNT
+
 SELECT
     [Insurance_Provider],
     COUNT(*) AS PatientCount,
@@ -260,7 +267,7 @@ SELECT
     Date_of_Admission,
     Discharge_Date,
     DATEDIFF(DAY, Date_of_Admission, Discharge_Date) AS LengthOfStay_Days
-INTO Lengthofstay_CALCULATED
+INTO Length_of_stay_CALCULATED
 FROM [FINAL CLEANED SHEET];
 
 
