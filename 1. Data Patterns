@@ -1,0 +1,301 @@
+-- 1. AGE GROUP CATEGORISATION
+-- Count patients in age ranges: 0–18 (Child), 19–35 (Young Adult), 36–60 (Adult), 61+ (Senior)
+SELECT
+    CASE
+        WHEN Age BETWEEN 0 AND 18 THEN 'Child (0-18)'
+        WHEN Age BETWEEN 19 AND 35 THEN 'Young Adult (19-35)'
+        WHEN Age BETWEEN 36 AND 60 THEN 'Adult (36-60)'
+        ELSE 'Senior (61+)'
+    END AS AgeGroup,
+
+    COUNT(*) AS PatientCount,
+    ROUND(
+        COUNT(*) * 100.0 /
+        (SELECT COUNT(*) FROM [FINAL CLEANED SHEET]),
+        2
+    ) AS PercentageOfTotal
+FROM [FINAL CLEANED SHEET]
+GROUP BY
+    CASE
+        WHEN Age BETWEEN 0 AND 18 THEN 'Child (0-18)'
+        WHEN Age BETWEEN 19 AND 35 THEN 'Young Adult (19-35)'
+        WHEN Age BETWEEN 36 AND 60 THEN 'Adult (36-60)'
+        ELSE 'Senior (61+)'
+    END
+ORDER BY
+    CASE
+        WHEN MIN(Age) BETWEEN 0 AND 18 THEN 1
+        WHEN MIN(Age) BETWEEN 19 AND 35 THEN 2
+        WHEN MIN(Age) BETWEEN 36 AND 60 THEN 3
+        ELSE 4
+    END;
+
+
+
+-- 2. GENDER CLASSIFICATION OVERALL
+SELECT
+    Gender,
+    COUNT(*) AS PatientCount,
+    ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM [FINAL CLEANED SHEET]), 2) AS PercentageOverall
+FROM [FINAL CLEANED SHEET]
+GROUP BY Gender;
+
+
+
+-- 3. GENDER CLASSIFICATION BY AGE GROUPS
+SELECT
+    CASE
+        WHEN Age BETWEEN 0 AND 18 THEN 'Child (0-18)'
+        WHEN Age BETWEEN 19 AND 35 THEN 'Young Adult (19-35)'
+        WHEN Age BETWEEN 36 AND 60 THEN 'Adult (36-60)'
+        ELSE 'Senior (61+)'
+    END AS AgeGroup,
+    Gender,
+    COUNT(*) AS PatientCount,
+    ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM [FINAL CLEANED SHEET]), 2) AS PercentageOfTotal
+FROM [FINAL CLEANED SHEET]
+GROUP BY
+    CASE
+        WHEN Age BETWEEN 0 AND 18 THEN 'Child (0-18)'
+        WHEN Age BETWEEN 19 AND 35 THEN 'Young Adult (19-35)'
+        WHEN Age BETWEEN 36 AND 60 THEN 'Adult (36-60)'
+        ELSE 'Senior (61+)'
+    END,
+    Gender
+ORDER BY
+    CASE
+        WHEN MIN(Age) BETWEEN 0 AND 18 THEN 1
+        WHEN MIN(Age) BETWEEN 19 AND 35 THEN 2
+        WHEN MIN(Age) BETWEEN 36 AND 60 THEN 3
+        ELSE 4
+    END,
+    Gender;
+
+
+
+-- 4. BLOOD TYPE CATEGORISATION
+SELECT
+    [Blood_Type],
+    COUNT(*) AS PatientCount,
+    ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM [FINAL CLEANED SHEET]), 2) AS PercentageOfTotal
+FROM [FINAL CLEANED SHEET]
+GROUP BY [Blood_Type]
+ORDER BY PatientCount DESC;
+
+
+
+-- 5. MEDICAL CONDITION CATEGORISATION
+SELECT
+    [Medical_Condition],
+    COUNT(*) AS PatientCount,
+    ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM [FINAL CLEANED SHEET]), 2) AS PercentageOfTotal
+FROM [FINAL CLEANED SHEET]
+GROUP BY [Medical_Condition]
+ORDER BY PatientCount DESC;
+
+
+
+-- 6. NUMBER OF PATIENTS ADMITTED AND UNIQUE PATIENTS WITH YoY %
+SELECT
+    YEAR([Date_of_Admission]) AS AdmissionYear,
+    COUNT(*) AS TotalAdmissions,
+    COUNT(DISTINCT Name) AS UniquePatients,
+    LAG(COUNT(DISTINCT Name)) OVER (ORDER BY YEAR([Date_of_Admission])) AS UniquePatientsPriorYear,
+    ROUND((COUNT(DISTINCT Name)
+            - LAG(COUNT(DISTINCT Name)) OVER (ORDER BY YEAR([Date_of_Admission]))) * 100.0 /
+        NULLIF(LAG(COUNT(DISTINCT Name)) OVER (ORDER BY YEAR([Date_of_Admission])),0), 2) AS UniquePatientYoYGrowth_Percent
+FROM [FINAL CLEANED SHEET]
+GROUP BY YEAR([Date_of_Admission])
+ORDER BY AdmissionYear;
+
+
+
+-- 7. NUMBER OF UNIQUE DOCTORS
+SELECT
+    COUNT(DISTINCT Doctor) AS UniqueDoctorCount
+FROM [FINAL CLEANED SHEET];
+
+
+
+
+-- 8. INSURANCE PROVIDERS CATEGORISATION - BY PATIENT COUNT
+SELECT
+    [Insurance_Provider],
+    COUNT(*) AS PatientCount,
+    ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM [FINAL CLEANED SHEET]), 2) AS PercentageOfTotal,
+    RANK() OVER (ORDER BY COUNT(*) DESC) AS RankByPatientVolume
+FROM [FINAL CLEANED SHEET]
+GROUP BY [Insurance_Provider]
+ORDER BY PatientCount DESC;
+
+
+
+-- 9. TOTAL REVENUE WITH YoY %
+
+WITH BillingData AS
+(SELECT
+        Date_of_Admission,
+        TRY_CAST(REPLACE(REPLACE(SUBSTRING(Billing_Amount, 3, LEN(Billing_Amount)),',', ''), ' ','') AS DECIMAL(18,2)) AS BillAmount
+    FROM [FINAL CLEANED SHEET])
+
+SELECT
+    YEAR(Date_of_Admission) AS BillingYear,
+    ROUND(SUM(BillAmount),2) AS TotalRevenue,
+    LAG(SUM(BillAmount)) OVER (ORDER BY YEAR(Date_of_Admission)) AS PriorYearRevenue,
+    ROUND((SUM(BillAmount)
+            - LAG(SUM(BillAmount)) OVER (ORDER BY YEAR(Date_of_Admission))) * 100.0 /
+            NULLIF(LAG(SUM(BillAmount)) OVER (ORDER BY YEAR(Date_of_Admission)),0), 2) 
+            AS YoYGrowthPercent
+FROM BillingData
+GROUP BY YEAR(Date_of_Admission)
+ORDER BY BillingYear;
+
+
+-- 10. OVERALL BILLING STATISTICS
+
+WITH BillingData AS
+(SELECT
+        TRY_CAST(REPLACE(REPLACE(SUBSTRING(Billing_Amount,3,LEN(Billing_Amount)), ',',''), ' ','') AS DECIMAL(18,2)) AS BillAmount
+    FROM [FINAL CLEANED SHEET])
+
+SELECT
+    ROUND(SUM(BillAmount),2) AS TotalRevenue,
+    ROUND(AVG(BillAmount),2) AS AverageAmount,
+    ROUND(MAX(BillAmount),2) AS MaxAmount,
+    ROUND(MIN(BillAmount),2) AS MinAmount,
+    ROUND(STDEV(BillAmount),2) AS StandardDeviation,
+    COUNT(BillAmount) AS TotalBills
+FROM BillingData;
+
+
+-- 11. BILLING CATEGORY
+
+WITH BillingData AS
+(SELECT
+TRY_CAST(REPLACE(REPLACE(SUBSTRING(Billing_Amount,3,LEN(Billing_Amount)), ',',''), ' ','') AS DECIMAL(18,2)) AS BillAmount
+FROM [FINAL CLEANED SHEET]),
+
+Percentiles AS
+(SELECT TOP 1
+        PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY BillAmount) OVER() AS P25,
+        PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY BillAmount) OVER() AS P50,
+        PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY BillAmount) OVER() AS P75
+    FROM BillingData)
+
+SELECT
+    CASE
+        WHEN b.BillAmount <= p.P25 THEN 'Q1 (0-25%)'
+        WHEN b.BillAmount <= p.P50 THEN 'Q2 (25-50%)'
+        WHEN b.BillAmount <= p.P75 THEN 'Q3 (50-75%)'
+        ELSE 'Q4 (75-100%)'
+    END AS BillingCategory,
+
+    COUNT(*) AS PatientCount,
+    ROUND(
+        COUNT(*) * 100.0 /
+        (SELECT COUNT(*) FROM BillingData), 2) AS PercentageOfTotal,
+    ROUND(AVG(b.BillAmount),2) AS AvgBillingAmount,
+    ROUND(SUM(b.BillAmount),2) AS TotalBillingAmount
+FROM BillingData b
+CROSS JOIN Percentiles p
+GROUP BY
+    CASE
+        WHEN b.BillAmount <= p.P25 THEN 'Q1 (0-25%)'
+        WHEN b.BillAmount <= p.P50 THEN 'Q2 (25-50%)'
+        WHEN b.BillAmount <= p.P75 THEN 'Q3 (50-75%)'
+        ELSE 'Q4 (75-100%)'
+    END
+ORDER BY
+    CASE
+        WHEN
+            CASE
+                WHEN b.BillAmount <= p.P25 THEN 'Q1 (0-25%)'
+                WHEN b.BillAmount <= p.P50 THEN 'Q2 (25-50%)'
+                WHEN b.BillAmount <= p.P75 THEN 'Q3 (50-75%)'
+                ELSE 'Q4 (75-100%)'
+            END = 'Q1 (0-25%)' THEN 1
+        WHEN
+            CASE
+                WHEN b.BillAmount <= p.P25 THEN 'Q1 (0-25%)'
+                WHEN b.BillAmount <= p.P50 THEN 'Q2 (25-50%)'
+                WHEN b.BillAmount <= p.P75 THEN 'Q3 (50-75%)'
+                ELSE 'Q4 (75-100%)'
+            END = 'Q2 (25-50%)' THEN 2
+        WHEN
+            CASE
+                WHEN b.BillAmount <= p.P25 THEN 'Q1 (0-25%)'
+                WHEN b.BillAmount <= p.P50 THEN 'Q2 (25-50%)'
+                WHEN b.BillAmount <= p.P75 THEN 'Q3 (50-75%)'
+                ELSE 'Q4 (75-100%)'
+            END = 'Q3 (50-75%)' THEN 3
+        ELSE 4
+    END;
+
+
+-- 12. ADMISSION TYPE CATEGORISATION
+
+WITH BillingData AS
+( SELECT
+Admission_Type,
+TRY_CAST(REPLACE(REPLACE(SUBSTRING(Billing_Amount,3,LEN(Billing_Amount)), ',',''), ' ','') AS DECIMAL(18,2)) 
+AS BillAmount
+FROM [FINAL CLEANED SHEET])
+
+SELECT
+Admission_Type,
+COUNT(*) AS PatientCount,
+ROUND(COUNT(*)*100.0/(SELECT COUNT(*) FROM BillingData),2) AS PercentageOfTotal,
+ROUND(AVG(BillAmount),2) AS AvgBillingAmount,
+ROUND(SUM(BillAmount),2) AS TotalBillingAmount
+FROM BillingData
+GROUP BY Admission_Type
+ORDER BY PatientCount DESC;
+
+
+
+-- 13. CALCULATE LENGTH OF STAY
+
+SELECT
+    Name,
+    Date_of_Admission,
+    Discharge_Date,
+    DATEDIFF(DAY, Date_of_Admission, Discharge_Date) AS LengthOfStay_Days
+INTO Lengthofstay_CALCULATED
+FROM [FINAL CLEANED SHEET];
+
+
+
+-- 14. LENGTH OF STAY STATISTICS
+
+SELECT
+ROUND(AVG(DATEDIFF(DAY,Date_of_Admission,Discharge_Date)),2) AS AverageLOS,
+MIN(DATEDIFF(DAY,Date_of_Admission,Discharge_Date)) AS MinimumLOS,
+MAX(DATEDIFF(DAY,Date_of_Admission,Discharge_Date)) AS MaximumLOS,
+ROUND(STDEV(DATEDIFF(DAY,Date_of_Admission,Discharge_Date)),2) AS StandardDeviationLOS
+FROM [FINAL CLEANED SHEET];
+
+
+
+-- 15. MEDICATION CATEGORISATION
+
+SELECT
+Medication,
+COUNT(*) AS PatientCount,
+ROUND(COUNT(*)*100.0/
+(SELECT COUNT(*) FROM [FINAL CLEANED SHEET]),2) AS PercentageOfTotal
+FROM [FINAL CLEANED SHEET]
+GROUP BY Medication
+ORDER BY PatientCount DESC;
+
+
+
+-- 16. TEST RESULTS CATEGORISATION
+
+SELECT
+Test_Results,
+COUNT(*) AS PatientCount,
+ROUND(COUNT(*)*100.0/
+(SELECT COUNT(*) FROM [FINAL CLEANED SHEET]),2) AS PercentageOfTotal
+FROM [FINAL CLEANED SHEET]
+GROUP BY Test_Results
+ORDER BY PatientCount DESC;
