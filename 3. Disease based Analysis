@@ -173,25 +173,23 @@ ORDER BY Medical_Condition;
 -- 9. MONTHLY DISEASE TRENDS
 
 SELECT
-    YEAR(Date_of_Admission) AS AdmissionYear,
     MONTH(Date_of_Admission) AS MonthNumber,
     DATENAME(MONTH, Date_of_Admission) AS MonthName,
     Medical_Condition,
     COUNT(*) AS PatientCount,
-    ROUND(SUM(Billing_Amount),2) AS TotalRevenue,
-    ROUND(AVG(Billing_Amount),2) AS AvgBillingAmount,
-    ROUND(AVG(DATEDIFF(DAY, Date_of_Admission, Discharge_Date)),2) AS AvgLengthOfStay
+    ROUND(SUM(Billing_Amount), 2) AS TotalRevenue,
+    ROUND(AVG(Billing_Amount), 2) AS AvgBillingAmount,
+    ROUND(AVG(DATEDIFF(DAY, Date_of_Admission, Discharge_Date)), 2) AS AvgLengthOfStay
 
 FROM [NEW CLEANED SHEET]
 GROUP BY
-    YEAR(Date_of_Admission),
     MONTH(Date_of_Admission),
     DATENAME(MONTH, Date_of_Admission),
     Medical_Condition
 ORDER BY
-    AdmissionYear,
     MonthNumber,
     Medical_Condition;
+
 
 
 
@@ -203,16 +201,11 @@ SELECT
     COUNT(*) AS PatientCount,
     ROUND(SUM(Billing_Amount),2) AS TotalRevenue,
     ROUND(AVG(Billing_Amount),2) AS AvgBillingAmount,
-    ROUND(AVG(DATEDIFF(DAY, Date_of_Admission, Discharge_Date)),2) AS AvgLengthOfStay,
-
-    RANK() OVER
-    (PARTITION BY YEAR(Date_of_Admission)
-     ORDER BY SUM(Billing_Amount) DESC) AS RevenueRank
+    ROUND(AVG(DATEDIFF(DAY, Date_of_Admission, Discharge_Date)),2) AS AvgLengthOfStay
 
 FROM [NEW CLEANED SHEET]
 GROUP BY
     YEAR(Date_of_Admission),
     Medical_Condition
 ORDER BY
-    AdmissionYear,
-    RevenueRank;
+    AdmissionYear;
