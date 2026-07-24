@@ -9,11 +9,7 @@ SELECT
     END AS AgeGroup,
 
     COUNT(*) AS PatientCount,
-    ROUND(
-        COUNT(*) * 100.0 /
-        (SELECT COUNT(*) FROM [NEW CLEANED SHEET]),
-        2
-    ) AS PercentageOfTotal
+    ROUND(COUNT(*) * 100.0 /(SELECT COUNT(*) FROM [NEW CLEANED SHEET]), 2) AS PercentageOfTotal
 FROM [NEW CLEANED SHEET]
 GROUP BY
     CASE
