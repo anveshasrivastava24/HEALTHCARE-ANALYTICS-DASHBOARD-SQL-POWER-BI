@@ -1,0 +1,513 @@
+-- ============================================================================
+-- 3.1 DISEASE FREQUENCY
+-- ============================================================================
+
+SELECT
+    Medical_Condition AS MedicalCondition,
+    COUNT(*) AS PatientCount,
+    ROUND(
+        COUNT(*) * 100.0 /
+        (SELECT COUNT(*) FROM [NEW CLEANED SHEET]),
+        2
+    ) AS PercentageOfTotal,
+    RANK() OVER (ORDER BY COUNT(*) DESC) AS DiseaseRank
+FROM [NEW CLEANED SHEET]
+GROUP BY Medical_Condition
+ORDER BY PatientCount DESC;
+
+
+
+-- ============================================================================
+-- 3.2 DISEASE REVENUE ANALYSIS
+-- ============================================================================
+
+WITH DiseaseRevenue AS
+(
+    SELECT
+        Medical_Condition AS MedicalCondition,
+        COUNT(*) AS PatientCount,
+        SUM(Billing_Amount) AS TotalRevenue,
+        AVG(Billing_Amount) AS AvgBillingAmount,
+        ROUND(
+            SUM(Billing_Amount) * 100.0 /
+            (SELECT SUM(Billing_Amount)
+             FROM [NEW CLEANED SHEET]),2
+        ) AS RevenueContributionPercent
+    FROM [NEW CLEANED SHEET]
+    GROUP BY Medical_Condition
+)
+
+SELECT *,
+       CASE
+            WHEN PatientCount >= (SELECT AVG(PatientCount) FROM DiseaseRevenue)
+             AND TotalRevenue >= (SELECT AVG(TotalRevenue) FROM DiseaseRevenue)
+                THEN 'High Volume | High Value'
+
+            WHEN PatientCount >= (SELECT AVG(PatientCount) FROM DiseaseRevenue)
+             AND TotalRevenue < (SELECT AVG(TotalRevenue) FROM DiseaseRevenue)
+                THEN 'High Volume | Low Value'
+
+            WHEN PatientCount < (SELECT AVG(PatientCount) FROM DiseaseRevenue)
+             AND TotalRevenue >= (SELECT AVG(TotalRevenue) FROM DiseaseRevenue)
+                THEN 'Low Volume | High Value'
+
+            ELSE 'Low Volume | Low Value'
+       END AS DiseaseCategory
+
+FROM DiseaseRevenue
+ORDER BY TotalRevenue DESC;
+
+
+
+
+-- ============================================================================
+-- 3.3 DISEASE VS AGE GROUP
+-- ============================================================================
+
+SELECT
+
+    Medical_Condition,
+
+    CASE
+        WHEN Age BETWEEN 0 AND 18 THEN 'Child (0-18)'
+        WHEN Age BETWEEN 19 AND 35 THEN 'Young Adult (19-35)'
+        WHEN Age BETWEEN 36 AND 60 THEN 'Adult (36-60)'
+        ELSE 'Senior (61+)'
+    END AS AgeGroup,
+
+    COUNT(*) AS PatientCount,
+
+    AVG(Age) AS AverageAge,
+
+    AVG(Billing_Amount) AS AvgBillingAmount
+
+FROM [NEW CLEANED SHEET]
+
+GROUP BY
+
+    Medical_Condition,
+
+    CASE
+        WHEN Age BETWEEN 0 AND 18 THEN 'Child (0-18)'
+        WHEN Age BETWEEN 19 AND 35 THEN 'Young Adult (19-35)'
+        WHEN Age BETWEEN 36 AND 60 THEN 'Adult (36-60)'
+        ELSE 'Senior (61+)'
+    END
+
+ORDER BY
+    Medical_Condition,
+    PatientCount DESC;
+
+
+
+    -- ============================================================================
+-- 3.4 DISEASE VS GENDER
+-- ============================================================================
+
+SELECT
+
+    Medical_Condition,
+
+    SUM(CASE WHEN Gender = 'Male' THEN 1 ELSE 0 END) AS MalePatientCount,
+
+    SUM(CASE WHEN Gender = 'Female' THEN 1 ELSE 0 END) AS FemalePatientCount,
+
+    COUNT(*) AS TotalPatients,
+
+    ROUND(
+        AVG(Billing_Amount),
+        2
+    ) AS AvgBillingAmount
+
+FROM [NEW CLEANED SHEET]
+
+GROUP BY Medical_Condition
+
+ORDER BY TotalPatients DESC;
+
+
+
+-- ============================================================================
+-- 3.5 DISEASE VS ADMISSION TYPE
+-- ============================================================================
+
+SELECT
+
+    Medical_Condition,
+
+    COUNT(*) AS TotalAdmissions,
+
+    SUM(CASE WHEN Admission_Type='Emergency' THEN 1 ELSE 0 END) AS EmergencyAdmissions,
+
+    ROUND(
+        SUM(CASE WHEN Admission_Type='Emergency' THEN 1 ELSE 0 END)*100.0
+        /COUNT(*),2
+    ) AS EmergencyPercent,
+
+    SUM(CASE WHEN Admission_Type='Elective' THEN 1 ELSE 0 END) AS ElectiveAdmissions,
+
+    ROUND(
+        SUM(CASE WHEN Admission_Type='Elective' THEN 1 ELSE 0 END)*100.0
+        /COUNT(*),2
+    ) AS ElectivePercent,
+
+    SUM(CASE WHEN Admission_Type='Urgent' THEN 1 ELSE 0 END) AS UrgentAdmissions,
+
+    ROUND(
+        SUM(CASE WHEN Admission_Type='Urgent' THEN 1 ELSE 0 END)*100.0
+        /COUNT(*),2
+    ) AS UrgentPercent
+
+FROM [NEW CLEANED SHEET]
+
+GROUP BY Medical_Condition
+
+ORDER BY TotalAdmissions DESC;
+
+
+
+
+
+-- ============================================================================
+-- 3.6 DISEASE VS LENGTH OF STAY
+-- ============================================================================
+
+SELECT
+
+    Medical_Condition,
+
+    COUNT(*) AS PatientCount,
+
+    ROUND(
+        AVG(DATEDIFF(DAY, Date_of_Admission, Discharge_Date)),
+        2
+    ) AS AvgLengthOfStay,
+
+    MIN(DATEDIFF(DAY, Date_of_Admission, Discharge_Date)) AS MinimumLOS,
+
+    MAX(DATEDIFF(DAY, Date_of_Admission, Discharge_Date)) AS MaximumLOS,
+
+    ROUND(
+        AVG(Billing_Amount),
+        2
+    ) AS AvgBillingAmount
+
+FROM [NEW CLEANED SHEET]
+
+GROUP BY Medical_Condition
+
+ORDER BY AvgLengthOfStay DESC;
+
+
+
+
+
+
+
+
+
+
+-- ============================================================================
+-- 3.7 DISEASE VS TEST RESULTS
+-- ============================================================================
+
+SELECT
+
+    Medical_Condition,
+
+    COUNT(*) AS TotalPatients,
+
+    SUM(CASE WHEN Test_Results = 'Normal' THEN 1 ELSE 0 END) AS NormalResults,
+
+    ROUND(
+        SUM(CASE WHEN Test_Results = 'Normal' THEN 1 ELSE 0 END) * 100.0 /
+        COUNT(*), 2
+    ) AS NormalPercent,
+
+    SUM(CASE WHEN Test_Results = 'Abnormal' THEN 1 ELSE 0 END) AS AbnormalResults,
+
+    ROUND(
+        SUM(CASE WHEN Test_Results = 'Abnormal' THEN 1 ELSE 0 END) * 100.0 /
+        COUNT(*), 2
+    ) AS AbnormalPercent,
+
+    SUM(CASE WHEN Test_Results = 'Inconclusive' THEN 1 ELSE 0 END) AS InconclusiveResults,
+
+    ROUND(
+        SUM(CASE WHEN Test_Results = 'Inconclusive' THEN 1 ELSE 0 END) * 100.0 /
+        COUNT(*), 2
+    ) AS InconclusivePercent
+
+FROM [NEW CLEANED SHEET]
+
+GROUP BY Medical_Condition
+
+ORDER BY TotalPatients DESC;
+
+
+
+
+
+
+
+
+-- ============================================================================
+-- 3.8 MOST PRESCRIBED MEDICATION FOR EACH DISEASE
+-- ============================================================================
+
+WITH MedicationFrequency AS
+(
+    SELECT
+
+        Medical_Condition,
+
+        Medication,
+
+        COUNT(*) AS PrescriptionCount,
+
+        ROW_NUMBER() OVER
+        (
+            PARTITION BY Medical_Condition
+            ORDER BY COUNT(*) DESC
+        ) AS RN
+
+    FROM [NEW CLEANED SHEET]
+
+    GROUP BY
+        Medical_Condition,
+        Medication
+)
+
+SELECT
+
+    Medical_Condition,
+
+    Medication AS MostPrescribedMedication,
+
+    PrescriptionCount
+
+FROM MedicationFrequency
+
+WHERE RN = 1
+
+ORDER BY Medical_Condition;
+
+
+-- ============================================================================
+-- NUMBER OF UNIQUE MEDICATIONS USED PER DISEASE
+-- ============================================================================
+
+SELECT
+
+    Medical_Condition,
+
+    COUNT(DISTINCT Medication) AS UniqueMedications,
+
+    COUNT(*) AS TotalPrescriptions,
+
+    ROUND(
+        AVG(Billing_Amount),
+        2
+    ) AS AvgBillingAmount
+
+FROM [NEW CLEANED SHEET]
+
+GROUP BY Medical_Condition
+
+ORDER BY UniqueMedications DESC;
+
+
+
+
+
+
+
+
+
+
+
+-- ============================================================================
+-- 3.9 DISEASE VS INSURANCE
+-- ============================================================================
+
+SELECT
+
+    Medical_Condition,
+
+    Insurance_Provider,
+
+    COUNT(*) AS PatientCount,
+
+    ROUND(
+        COUNT(*) * 100.0 /
+        SUM(COUNT(*)) OVER(PARTITION BY Medical_Condition),
+        2
+    ) AS InsuranceMixPercent,
+
+    ROUND(
+        SUM(Billing_Amount),
+        2
+    ) AS TotalRevenue,
+
+    ROUND(
+        AVG(Billing_Amount),
+        2
+    ) AS AvgBillingAmount,
+
+    MIN(Billing_Amount) AS MinimumBill,
+
+    MAX(Billing_Amount) AS MaximumBill
+
+FROM [NEW CLEANED SHEET]
+
+GROUP BY
+
+    Medical_Condition,
+    Insurance_Provider
+
+ORDER BY
+
+    Medical_Condition,
+    TotalRevenue DESC;
+
+
+
+
+
+
+
+
+
+
+    -- ============================================================================
+-- 3.10.1 MONTHLY DISEASE TRENDS
+-- ============================================================================
+
+SELECT
+
+    YEAR(Date_of_Admission) AS AdmissionYear,
+
+    MONTH(Date_of_Admission) AS MonthNumber,
+
+    DATENAME(MONTH, Date_of_Admission) AS MonthName,
+
+    Medical_Condition,
+
+    COUNT(*) AS PatientCount,
+
+    ROUND(SUM(Billing_Amount),2) AS TotalRevenue,
+
+    ROUND(AVG(Billing_Amount),2) AS AvgBillingAmount,
+
+    ROUND(
+        AVG(DATEDIFF(DAY, Date_of_Admission, Discharge_Date)),
+        2
+    ) AS AvgLengthOfStay
+
+FROM [NEW CLEANED SHEET]
+
+GROUP BY
+
+    YEAR(Date_of_Admission),
+    MONTH(Date_of_Admission),
+    DATENAME(MONTH, Date_of_Admission),
+    Medical_Condition
+
+ORDER BY
+
+    AdmissionYear,
+    MonthNumber,
+    Medical_Condition;
+
+
+
+
+
+
+    -- ============================================================================
+-- 3.10.2 QUARTERLY DISEASE TRENDS
+-- ============================================================================
+
+SELECT
+
+    YEAR(Date_of_Admission) AS AdmissionYear,
+
+    DATEPART(QUARTER, Date_of_Admission) AS Quarter,
+
+    Medical_Condition,
+
+    COUNT(*) AS PatientCount,
+
+    ROUND(SUM(Billing_Amount),2) AS TotalRevenue,
+
+    ROUND(AVG(Billing_Amount),2) AS AvgBillingAmount,
+
+    ROUND(
+        AVG(DATEDIFF(DAY, Date_of_Admission, Discharge_Date)),
+        2
+    ) AS AvgLengthOfStay
+
+FROM [NEW CLEANED SHEET]
+
+GROUP BY
+
+    YEAR(Date_of_Admission),
+    DATEPART(QUARTER, Date_of_Admission),
+    Medical_Condition
+
+ORDER BY
+
+    AdmissionYear,
+    Quarter,
+    Medical_Condition;
+
+
+
+
+
+
+
+
+
+
+
+
+
+    -- ============================================================================
+-- 3.10.3 YEARLY DISEASE TRENDS
+-- ============================================================================
+
+SELECT
+
+    YEAR(Date_of_Admission) AS AdmissionYear,
+
+    Medical_Condition,
+
+    COUNT(*) AS PatientCount,
+
+    ROUND(SUM(Billing_Amount),2) AS TotalRevenue,
+
+    ROUND(AVG(Billing_Amount),2) AS AvgBillingAmount,
+
+    ROUND(
+        AVG(DATEDIFF(DAY, Date_of_Admission, Discharge_Date)),
+        2
+    ) AS AvgLengthOfStay,
+
+    RANK() OVER
+    (
+        PARTITION BY YEAR(Date_of_Admission)
+        ORDER BY SUM(Billing_Amount) DESC
+    ) AS RevenueRank
+
+FROM [NEW CLEANED SHEET]
+
+GROUP BY
+
+    YEAR(Date_of_Admission),
+    Medical_Condition
+
+ORDER BY
+
+    AdmissionYear,
+    RevenueRank;
