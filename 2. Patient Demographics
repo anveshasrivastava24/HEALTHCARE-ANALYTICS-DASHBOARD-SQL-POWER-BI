@@ -1,25 +1,310 @@
-WITH HospitalRevenue AS
-(
+--AGE WISE
+--===========================================================================================================================
+
+-- 1. TOTAL NO OF PATIENTS
+
 SELECT
-    Hospital,
-    COUNT(*) AS Total_Admissions,
-    COUNT(DISTINCT Name) AS Unique_Patients,
-    ROUND(SUM(Billing_Amount),2) AS Total_Revenue,
-    ROUND(AVG(Billing_Amount),2) AS Avg_Billing,
+    COUNT(*) AS TotalPatients
+FROM [NEW CLEANED SHEET];
+
+
+-- 2. AVERAGE AGE
+
+SELECT
+    ROUND(AVG(Age),2) AS AverageAge
+FROM [NEW CLEANED SHEET];
+
+
+-- 3. MEDIAN AGE
+
+SELECT DISTINCT
+    PERCENTILE_CONT(0.5)
+    WITHIN GROUP (ORDER BY Age)
+    OVER () AS MedianAge
+FROM [NEW CLEANED SHEET];
+
+
+-- 4. AGE DISTRIBUTION 
+
+SELECT
+CASE
+    WHEN Age BETWEEN 0 AND 18 THEN '0-18'
+    WHEN Age BETWEEN 19 AND 30 THEN '19-30'
+    WHEN Age BETWEEN 31 AND 45 THEN '31-45'
+    WHEN Age BETWEEN 46 AND 60 THEN '46-60'
+    ELSE '61+'
+END AS AgeGroup,
+
+COUNT(*) AS PatientCount,
+ROUND(COUNT(*)*100.0/
+(SELECT COUNT(*) FROM [NEW CLEANED SHEET]),2) AS PercentageOfTotal
+FROM [NEW CLEANED SHEET]
+
+GROUP BY
+CASE
+    WHEN Age BETWEEN 0 AND 18 THEN '0-18'
+    WHEN Age BETWEEN 19 AND 30 THEN '19-30'
+    WHEN Age BETWEEN 31 AND 45 THEN '31-45'
+    WHEN Age BETWEEN 46 AND 60 THEN '46-60'
+    ELSE '61+'
+END
+ORDER BY
+CASE
+    WHEN MIN(Age) BETWEEN 0 AND 18 THEN 1
+    WHEN MIN(Age) BETWEEN 19 AND 30 THEN 2
+    WHEN MIN(Age) BETWEEN 31 AND 45 THEN 3
+    WHEN MIN(Age) BETWEEN 46 AND 60 THEN 4
+    ELSE 5
+END;
+
+
+
+-- 5. BILLING AMT x AGE
+
+SELECT
+
+CASE
+    WHEN Age BETWEEN 0 AND 18 THEN '0-18'
+    WHEN Age BETWEEN 19 AND 30 THEN '19-30'
+    WHEN Age BETWEEN 31 AND 45 THEN '31-45'
+    WHEN Age BETWEEN 46 AND 60 THEN '46-60'
+    ELSE '61+'
+END AS AgeGroup,
+COUNT(*) AS PatientCount,
+ROUND(SUM([Billing_Amount]),2) AS TotalBilling,
+ROUND(AVG([Billing_Amount]),2) AS AverageBilling
+FROM [NEW CLEANED SHEET]
+
+GROUP BY
+
+CASE
+    WHEN Age BETWEEN 0 AND 18 THEN '0-18'
+    WHEN Age BETWEEN 19 AND 30 THEN '19-30'
+    WHEN Age BETWEEN 31 AND 45 THEN '31-45'
+    WHEN Age BETWEEN 46 AND 60 THEN '46-60'
+    ELSE '61+'
+END
+ORDER BY TotalBilling DESC;
+
+
+
+-- 6. DISEASES x AGE
+
+-- TOP DISEASES FOR CHILDREN
+SELECT TOP 10
+[Medical_Condition],
+COUNT(*) AS PatientCountInChildren
+FROM [NEW CLEANED SHEET]
+WHERE Age BETWEEN 0 AND 18
+GROUP BY [Medical_Condition]
+ORDER BY PatientCountInChildren DESC;
+
+-- TOP DISEASES FOR ADULTS
+SELECT TOP 10
+[Medical_Condition],
+COUNT(*) AS PatientCountInAdults
+FROM [NEW CLEANED SHEET]
+WHERE Age BETWEEN 31 AND 60
+GROUP BY [Medical_Condition]
+ORDER BY PatientCountInAdults DESC;
+
+-- TOP DISEASES FOR SENIORS
+SELECT TOP 10
+[Medical_Condition],
+COUNT(*) AS PatientCountInSeniorCitizens
+FROM [NEW CLEANED SHEET]
+WHERE Age >= 61
+GROUP BY [Medical_Condition]
+ORDER BY PatientCountInSeniorCitizens DESC;
+
+
+
+-- 7. LOS x AGE
+
+SELECT
+CASE
+    WHEN Age BETWEEN 0 AND 18 THEN '0-18'
+    WHEN Age BETWEEN 19 AND 30 THEN '19-30'
+    WHEN Age BETWEEN 31 AND 45 THEN '31-45'
+    WHEN Age BETWEEN 46 AND 60 THEN '46-60'
+    ELSE '61+'
+END AS AgeGroup,
+COUNT(*) AS PatientCount,
+ROUND(
+AVG(DATEDIFF(DAY,[Date_of_Admission],[Discharge_Date])),2
+) AS AverageLengthOfStay
+FROM [NEW CLEANED SHEET]
+GROUP BY
+CASE
+    WHEN Age BETWEEN 0 AND 18 THEN '0-18'
+    WHEN Age BETWEEN 19 AND 30 THEN '19-30'
+    WHEN Age BETWEEN 31 AND 45 THEN '31-45'
+    WHEN Age BETWEEN 46 AND 60 THEN '46-60'
+    ELSE '61+'
+END
+ORDER BY AverageLengthOfStay DESC;
+
+
+-- 8. ADMISSION TYPE x AGE
+SELECT
+CASE
+    WHEN Age BETWEEN 0 AND 18 THEN '0-18'
+    WHEN Age BETWEEN 19 AND 30 THEN '19-30'
+    WHEN Age BETWEEN 31 AND 45 THEN '31-45'
+    WHEN Age BETWEEN 46 AND 60 THEN '46-60'
+    ELSE '61+'
+END AS AgeGroup,
+[Admission_Type],
+COUNT(*) AS PatientCount
+FROM [NEW CLEANED SHEET]
+GROUP BY
+CASE
+    WHEN Age BETWEEN 0 AND 18 THEN '0-18'
+    WHEN Age BETWEEN 19 AND 30 THEN '19-30'
+    WHEN Age BETWEEN 31 AND 45 THEN '31-45'
+    WHEN Age BETWEEN 46 AND 60 THEN '46-60'
+    ELSE '61+'
+END,
+[Admission_Type]
+ORDER BY AgeGroup;
+
+
+-- 9. TEST RESULTS x AGE
+
+SELECT
+CASE
+    WHEN Age BETWEEN 0 AND 18 THEN '0-18'
+    WHEN Age BETWEEN 19 AND 30 THEN '19-30'
+    WHEN Age BETWEEN 31 AND 45 THEN '31-45'
+    WHEN Age BETWEEN 46 AND 60 THEN '46-60'
+    ELSE '61+'
+END AS AgeGroup,
+[Test_Results],
+COUNT(*) AS PatientCount,
+ROUND(AVG([Billing_Amount]),2) AS AverageBilling
+FROM [NEW CLEANED SHEET]
+GROUP BY
+CASE
+    WHEN Age BETWEEN 0 AND 18 THEN '0-18'
+    WHEN Age BETWEEN 19 AND 30 THEN '19-30'
+    WHEN Age BETWEEN 31 AND 45 THEN '31-45'
+    WHEN Age BETWEEN 46 AND 60 THEN '46-60'
+    ELSE '61+'
+END,
+[Test_Results]
+ORDER BY AgeGroup, PatientCount DESC;
+
+
+--===========================================================================================================================
+--GENDER WISE
+--===========================================================================================================================
+
+-- 10. GENDER DISTRIBUTION
+
+SELECT
+Gender,
+COUNT(*) AS PatientCount,
+ROUND(COUNT(*)*100.0/
+(SELECT COUNT(*) FROM [NEW CLEANED SHEET]),2) AS Percentage
+FROM [NEW CLEANED SHEET]
+GROUP BY Gender;
+
+
+-- 11. AGE x GENDER
+
+SELECT
+    CASE
+        WHEN Age BETWEEN 0 AND 18 THEN 'Child (0-18)'
+        WHEN Age BETWEEN 19 AND 35 THEN 'Young Adult (19-35)'
+        WHEN Age BETWEEN 36 AND 60 THEN 'Adult (36-60)'
+        ELSE 'Senior (61+)'
+    END AS AgeGroup,
+    Gender,
+    COUNT(*) AS PatientCount,
+    ROUND(COUNT(*) * 100.0 / (SELECT COUNT(*) FROM [NEW CLEANED SHEET]), 2) AS PercentageOfTotal
+FROM [NEW CLEANED SHEET]
+GROUP BY
+    CASE
+        WHEN Age BETWEEN 0 AND 18 THEN 'Child (0-18)'
+        WHEN Age BETWEEN 19 AND 35 THEN 'Young Adult (19-35)'
+        WHEN Age BETWEEN 36 AND 60 THEN 'Adult (36-60)'
+        ELSE 'Senior (61+)'
+    END,
+    Gender
+ORDER BY
+    CASE
+        WHEN MIN(Age) BETWEEN 0 AND 18 THEN 1
+        WHEN MIN(Age) BETWEEN 19 AND 35 THEN 2
+        WHEN MIN(Age) BETWEEN 36 AND 60 THEN 3
+        ELSE 4
+    END,
+    Gender;
+
+
+-- 12. MEDICAL CONDITION x GENDER
+
+SELECT
+    Medical_Condition,
+    Gender,
+    COUNT(*) AS PatientCount
+FROM [NEW CLEANED SHEET]
+GROUP BY
+    Medical_Condition,
+    Gender
+ORDER BY
+    Medical_Condition,
+    PatientCount DESC;
+
+
+
+ -- 13. LOS x GENDER
+
+SELECT
+Gender,
+COUNT(*) AS PatientCount,
+ROUND(AVG(DATEDIFF(DAY,[Date_of_Admission],[Discharge_Date])),2
+) AS AverageLOS,
+MIN(DATEDIFF(DAY,[Date_of_Admission],[Discharge_Date])) AS MinimumLOS,
+MAX(DATEDIFF(DAY,[Date_of_Admission],[Discharge_Date])) AS MaximumLOS
+FROM [NEW CLEANED SHEET]
+GROUP BY Gender;
+
+
+-- 14. BILLING AMT x GENDER
+
+SELECT
+Gender,
+COUNT(*) AS PatientCount,
+ROUND(SUM([Billing_Amount]),2) AS TotalRevenue,
+ROUND(AVG([Billing_Amount]),2) AS AverageBilling,
+ROUND(SUM([Billing_Amount])*100.0/
+(SELECT SUM([Billing_Amount]) FROM [NEW CLEANED SHEET]),2) AS RevenueContributionPercent
+FROM [NEW CLEANED SHEET]
+GROUP BY Gender
+ORDER BY TotalRevenue DESC;
+
+
+
+-- 15. TEST RESULTS x GENDER
+
+SELECT
+    Gender,
+    [Test_Results],
+    COUNT(*) AS PatientCount,
+    ROUND(AVG([Billing_Amount]), 2) AS AverageBilling,
     ROUND(
-        AVG(
-        CAST(
-        DATEDIFF(DAY,Date_of_Admission,Discharge_Date)
-        AS FLOAT)
-        ),2
-    ) AS Avg_Length_of_Stay
-FROM dbo.anv
-GROUP BY Hospital
-)
-SELECT
-*,
-RANK() OVER(
-ORDER BY Total_Revenue DESC
-) AS Revenue_Rank
-FROM HospitalRevenue
-ORDER BY Revenue_Rank;
+        AVG(DATEDIFF(DAY, [Date_of_Admission], [Discharge_Date])),
+        2
+    ) AS AverageLengthOfStay,
+    ROUND(
+        COUNT(*) * 100.0 /
+        SUM(COUNT(*)) OVER (PARTITION BY Gender),
+        2
+    ) AS PercentageWithinGender
+FROM [NEW CLEANED SHEET]
+GROUP BY
+    Gender,
+    [Test_Results]
+ORDER BY
+    Gender,
+    PatientCount DESC;
